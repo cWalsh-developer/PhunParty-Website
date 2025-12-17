@@ -1,0 +1,8 @@
+src/pages/SessionWaitingRoom.tsx
+  7a2bb84 210,231
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "base_commit_sha": "a97e3b0aad991c606a8fe8db94960e91b4e5a754",
+  "prompts": {}
+}
