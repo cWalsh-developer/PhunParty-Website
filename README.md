@@ -12,7 +12,10 @@ Cozy indie trivia game. React + Vite + Tailwind frontend, Python backend API (`a
 3. `npm run dev` (automatically handles CORS via development proxy)
 4. Open http://localhost:5173
 
-### CORS Development Notes
+## Backend Repo
+The backend is managed on an another repo by Connor Walsh. The repo uses FastAPI and Twilio for the API and SMS sending through the API link. Here is the [link to the repo](https://github.com/cWalsh-developer/PhunParty)
+
+## Prod - CORS Development Notes
 
 The development server automatically proxies `/api/*` requests to `https://api.phun.party` to avoid CORS issues. No additional configuration needed for local development.
 
