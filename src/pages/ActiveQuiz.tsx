@@ -150,7 +150,7 @@ export default function ActiveQuiz() {
       audio.play().catch((err) => {
         console.warn(
           "Intro audio failed to autoplay, waiting for user interaction.",
-          err
+          err,
         );
       });
       audio.addEventListener("ended", () => {
@@ -192,7 +192,7 @@ export default function ActiveQuiz() {
 
             if (finalPlayerCount === 0) {
               showError(
-                "No players detected. Please ensure players have joined before starting."
+                "No players detected. Please ensure players have joined before starting.",
               );
               setIntroMode(false);
               setCountdown(null);
@@ -244,7 +244,7 @@ export default function ActiveQuiz() {
     countdownRef.current && clearTimeout(countdownRef.current);
     countdownRef.current = setTimeout(
       () => setCountdown((c) => (c ? c - 1 : 0)),
-      1000
+      1000,
     );
     return () => {
       if (countdownRef.current) clearTimeout(countdownRef.current);
@@ -334,13 +334,13 @@ export default function ActiveQuiz() {
                 typeof value === "string"
                   ? value
                   : value && typeof value === "object"
-                  ? value.text ??
-                    value.label ??
-                    value.option_text ??
-                    value.value ??
-                    ""
-                  : String(value ?? ""),
-            })
+                    ? (value.text ??
+                      value.label ??
+                      value.option_text ??
+                      value.value ??
+                      "")
+                    : String(value ?? ""),
+            }),
           );
         }
 
@@ -360,7 +360,7 @@ export default function ActiveQuiz() {
 
       const answerText =
         typeof correctIndex === "number" && Array.isArray(displayOptions)
-          ? displayOptions[correctIndex] ?? ""
+          ? (displayOptions[correctIndex] ?? "")
           : wsQ.answer || "";
 
       // Determine type based on ui_mode if available, otherwise check if options exist

@@ -8,7 +8,7 @@ const API_KEY = import.meta.env.VITE_API_KEY;
 // WebSocket URL utility
 export function getWebSocketUrl(
   sessionCode: string,
-  params?: Record<string, string>
+  params?: Record<string, string>,
 ): string {
   // Prefer an explicit WebSocket host when provided via environment. This
   // allows connecting directly to a remote host (e.g. api.phun.party) or
@@ -121,7 +121,7 @@ function buildUrl(path: string): string {
 async function apiFetch<T>(
   path: string,
   init: RequestInit = {},
-  parseJson = true
+  parseJson = true,
 ): Promise<T> {
   try {
     const headers = new Headers(init.headers ?? undefined);
@@ -151,7 +151,7 @@ async function apiFetch<T>(
       }
 
       throw new Error(
-        message || `Request failed with status ${response.status}`
+        message || `Request failed with status ${response.status}`,
       );
     }
 
@@ -169,8 +169,8 @@ async function apiFetch<T>(
       throw new Error(
         `Expected JSON response but received: ${contentType}. Response: ${responseText.substring(
           0,
-          200
-        )}...`
+          200,
+        )}...`,
       );
     }
 
@@ -181,8 +181,8 @@ async function apiFetch<T>(
       throw new Error(
         `Failed to parse JSON response: ${error}. Response: ${responseText.substring(
           0,
-          200
-        )}...`
+          200,
+        )}...`,
       );
     }
   } catch (error) {
@@ -411,7 +411,7 @@ const mapQuestion = (raw: BackendQuestion): QuestionResponse => ({
   prompt: raw.question ?? raw.message ?? "",
   options: Array.isArray(raw.options)
     ? raw.options.filter(
-        (option): option is string => typeof option === "string"
+        (option): option is string => typeof option === "string",
       )
     : [],
   answer: raw.answer ?? null,
@@ -435,8 +435,8 @@ const mapGameStatus = (raw: BackendGameStatus): GameStatusResponse => {
         ? "active"
         : "waiting"
       : raw.is_waiting_for_players
-      ? "waiting"
-      : "ended",
+        ? "waiting"
+        : "ended",
     isstarted: raw.isstarted,
     current_question_index: raw.current_question_index,
     total_questions: raw.total_questions,
@@ -569,16 +569,16 @@ export interface StartGameResponse {
 }
 
 export async function getScores(
-  session_code: string
+  session_code: string,
 ): Promise<ScoresResponseModel[]> {
   const raw = await apiFetch<BackendScore[]>(
-    `/scores/${encodeURIComponent(session_code)}`
+    `/scores/${encodeURIComponent(session_code)}`,
   );
   return raw.map(mapScore);
 }
 
 export async function createPlayer(
-  data: CreatePlayerRequest
+  data: CreatePlayerRequest,
 ): Promise<PlayerResponse> {
   const raw = await apiFetch<BackendPlayer>("/players/create", {
     method: "POST",
@@ -589,14 +589,14 @@ export async function createPlayer(
 
 export async function getPlayer(player_id: string): Promise<PlayerResponse> {
   const raw = await apiFetch<BackendPlayer>(
-    `/players/${encodeURIComponent(player_id)}`
+    `/players/${encodeURIComponent(player_id)}`,
   );
   return mapPlayer(raw);
 }
 
 async function getPlayerWithToken(
   player_id: string,
-  token: string
+  token: string,
 ): Promise<PlayerResponse> {
   const headers = new Headers();
   if (API_KEY) {
@@ -610,7 +610,7 @@ async function getPlayerWithToken(
     {
       method: "GET",
       headers,
-    }
+    },
   );
 
   if (!response.ok) {
@@ -635,20 +635,20 @@ async function getPlayerWithToken(
 
 export async function updatePlayer(
   player_id: string,
-  data: PlayerUpdateRequest
+  data: PlayerUpdateRequest,
 ): Promise<PlayerResponse> {
   const raw = await apiFetch<BackendPlayer>(
     `/players/${encodeURIComponent(player_id)}`,
     {
       method: "PUT",
       body: JSON.stringify(data),
-    }
+    },
   );
   return mapPlayer(raw);
 }
 
 export async function submitAnswer(
-  data: SubmitAnswerRequest
+  data: SubmitAnswerRequest,
 ): Promise<SubmitAnswerResponse> {
   const payload = {
     player_id: data.player_id,
@@ -664,25 +664,25 @@ export async function submitAnswer(
 }
 
 export async function getSessionStatus(
-  session_code: string
+  session_code: string,
 ): Promise<GameStatusResponse> {
   const raw = await apiFetch<BackendGameStatus>(
-    `/game-logic/status/${encodeURIComponent(session_code)}`
+    `/game-logic/status/${encodeURIComponent(session_code)}`,
   );
   return mapGameStatus(raw);
 }
 
 export async function getCurrentQuestion(
-  session_code: string
+  session_code: string,
 ): Promise<QuestionResponse> {
   const raw = await apiFetch<BackendQuestion>(
-    `/game-logic/current-question/${encodeURIComponent(session_code)}`
+    `/game-logic/current-question/${encodeURIComponent(session_code)}`,
   );
   return mapQuestion(raw);
 }
 
 export async function createSession(
-  data: CreateSessionRequest
+  data: CreateSessionRequest,
 ): Promise<GameResponse> {
   const payload = {
     owner_player_id: data.owner_player_id,
@@ -708,7 +708,7 @@ export async function createSession(
 // *! Wait for Endpoint ! \\
 export async function getGames(player_id: string): Promise<GameHistory[]> {
   const raw = await apiFetch<BackendGameHistory[]>(
-    `/game/history/${encodeURIComponent(player_id)}`
+    `/game/history/${encodeURIComponent(player_id)}`,
   );
   return raw.map(mapHistory);
 }
@@ -728,7 +728,7 @@ export async function getOwnedUserSessions(): Promise<GameResponse[]> {
     // Fetch owned session using user id and players/allOwnedSessions/{player_id}
     const userId = JSON.parse(stored).id;
     const raw = await apiFetch<BackendGameSession[]>(
-      `/players/allOwnedSessions/${encodeURIComponent(userId)}`
+      `/players/allOwnedSessions/${encodeURIComponent(userId)}`,
     );
     return raw.map(mapSession);
   } catch (err) {
@@ -757,7 +757,7 @@ export function addUserSession(sessionCode: string): void {
 }
 
 export async function joinGameSession(
-  data: JoinGameRequest
+  data: JoinGameRequest,
 ): Promise<JoinGameResponse> {
   // Backend currently returns only { message }, but future-proof for extra fields
   const res = await apiFetch<{
@@ -773,11 +773,11 @@ export async function joinGameSession(
 }
 
 export async function leaveGameSession(
-  player_id: string
+  player_id: string,
 ): Promise<LeaveGameResponse> {
   return apiFetch<LeaveGameResponse>(
     `/game/leave?player_id=${encodeURIComponent(player_id)}`,
-    { method: "POST" }
+    { method: "POST" },
   );
 }
 
@@ -828,7 +828,7 @@ export async function login(data: LoginRequest): Promise<LoginResponse> {
           .map(function (c) {
             return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
           })
-          .join("")
+          .join(""),
       );
 
       const decodedToken = JSON.parse(jsonPayload);
@@ -840,7 +840,7 @@ export async function login(data: LoginRequest): Promise<LoginResponse> {
       // Fetch user data using the player ID from the token
       const playerData = await getPlayerWithToken(
         decodedToken.sub,
-        parsedResponse.access_token
+        parsedResponse.access_token,
       );
 
       // Construct the expected LoginResponse format
@@ -871,13 +871,13 @@ export async function login(data: LoginRequest): Promise<LoginResponse> {
     throw new Error(
       `Failed to process login response: ${
         error instanceof Error ? error.message : error
-      }`
+      }`,
     );
   }
 }
 
 export async function requestPasswordReset(
-  data: PasswordResetRequest
+  data: PasswordResetRequest,
 ): Promise<PasswordResetResponse> {
   return apiFetch<PasswordResetResponse>("/password-reset/request", {
     method: "POST",
@@ -886,7 +886,7 @@ export async function requestPasswordReset(
 }
 
 export async function verifyPasswordReset(
-  data: PasswordVerifyRequest
+  data: PasswordVerifyRequest,
 ): Promise<PasswordResetResponse> {
   return apiFetch<PasswordResetResponse>("/password-reset/verify", {
     method: "POST",
@@ -895,7 +895,7 @@ export async function verifyPasswordReset(
 }
 
 export async function updatePassword(
-  data: PasswordUpdateRequest
+  data: PasswordUpdateRequest,
 ): Promise<PasswordUpdateResponse> {
   return apiFetch<PasswordUpdateResponse>("/password-reset/update", {
     method: "PUT",
@@ -904,7 +904,7 @@ export async function updatePassword(
 }
 
 export async function startGame(
-  data: StartGameRequest
+  data: StartGameRequest,
 ): Promise<StartGameResponse> {
   // Backend expects a PUT with no body for start-game; body ignored if sent
   return apiFetch<StartGameResponse>(
@@ -912,7 +912,7 @@ export async function startGame(
     {
       method: "PUT",
       body: JSON.stringify({}),
-    }
+    },
   );
 }
 
@@ -970,7 +970,7 @@ export interface EndGameResponse {
 }
 
 export async function pauseGame(
-  data: PauseGameRequest
+  data: PauseGameRequest,
 ): Promise<PauseGameResponse> {
   return apiFetch<PauseGameResponse>("/game-logic/pause", {
     method: "POST",
@@ -979,7 +979,7 @@ export async function pauseGame(
 }
 
 export async function resumeGame(
-  data: ResumeGameRequest
+  data: ResumeGameRequest,
 ): Promise<ResumeGameResponse> {
   return apiFetch<ResumeGameResponse>("/game-logic/resume", {
     method: "POST",
@@ -988,7 +988,7 @@ export async function resumeGame(
 }
 
 export async function nextQuestion(
-  data: NextQuestionRequest
+  data: NextQuestionRequest,
 ): Promise<NextQuestionResponse> {
   return apiFetch<NextQuestionResponse>("/game-logic/next-question", {
     method: "POST",
@@ -997,7 +997,7 @@ export async function nextQuestion(
 }
 
 export async function previousQuestion(
-  data: PreviousQuestionRequest
+  data: PreviousQuestionRequest,
 ): Promise<PreviousQuestionResponse> {
   return apiFetch<PreviousQuestionResponse>("/game-logic/previous-question", {
     method: "POST",
@@ -1012,7 +1012,7 @@ export async function endGame(data: EndGameRequest): Promise<EndGameResponse> {
     `/game/end-game/${encodeURIComponent(data.session_code)}`,
     {
       method: "POST",
-    }
+    },
   );
 
   // Normalize backend response to EndGameResponse
