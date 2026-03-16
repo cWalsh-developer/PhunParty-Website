@@ -78,6 +78,8 @@ export interface UseGameUpdatesReturn {
   sendMessage?: (message: any) => void;
   // Request current roster from server
   requestRoster?: () => void;
+  // Force-refresh connection and roster for manual recovery
+  refreshConnection?: () => void;
 }
 
 const useGameUpdates = ({
@@ -243,6 +245,7 @@ const useGameUpdates = ({
     pressBuzzer,
     sendMessage,
     requestRoster,
+    connect,
   } = useGameWebSocket({
     sessionCode,
     clientType,
@@ -261,6 +264,24 @@ const useGameUpdates = ({
     reconnectAttempts: 1000,
     reconnectInterval: 1200,
   });
+
+  const refreshConnection = useCallback(() => {
+    if (!enableWebSocket) {
+      fetchGameStatus();
+      return;
+    }
+
+    // If connected, request authoritative roster and refresh status.
+    if (isConnected) {
+      requestRoster?.();
+      fetchGameStatus();
+      return;
+    }
+
+    // If disconnected, force a connect attempt and fetch fallback status.
+    connect();
+    fetchGameStatus();
+  }, [enableWebSocket, isConnected, requestRoster, connect, fetchGameStatus]);
 
   // Periodically request authoritative roster while connected to self-heal missed events.
   useEffect(() => {
@@ -363,6 +384,7 @@ const useGameUpdates = ({
     pressBuzzer,
     sendMessage: enableWebSocket ? sendMessage : undefined,
     requestRoster: enableWebSocket ? requestRoster : undefined,
+    refreshConnection: enableWebSocket ? refreshConnection : fetchGameStatus,
   };
 };
 
