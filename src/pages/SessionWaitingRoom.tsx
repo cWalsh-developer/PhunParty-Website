@@ -21,7 +21,7 @@ export default function SessionWaitingRoom() {
     isConnected,
     connectedPlayers,
     startGame: wsStartGame,
-    requestRoster,
+    refreshConnection,
   } = useGameUpdates({
     sessionCode: sessionCode || "",
     pollInterval: 3000,
@@ -48,6 +48,11 @@ export default function SessionWaitingRoom() {
   }
 
   const joinUrl = `${window.location.origin}/#/join/${sessionCode}`;
+
+  const handleManualRefresh = () => {
+    refreshConnection?.();
+    showSuccess("Refreshing connection and player roster...");
+  };
 
   const handleStart = async () => {
     if (!sessionCode) return;
@@ -182,16 +187,16 @@ export default function SessionWaitingRoom() {
       <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">Players Joined</h3>
-          {isConnected && requestRoster && (
+          {refreshConnection && (
             <button
-              onClick={() => requestRoster()}
+              onClick={handleManualRefresh}
               className="text-xs text-tea-400 hover:text-tea-300 transition-colors"
-              title="Refresh player list"
+              title="Refresh WebSocket connection and player list"
             >
               <span className="inline-block w-4 h-4 mr-1 animate-spin-slow text-center">
                 ↻
               </span>
-              Refresh
+              Refresh Connection
             </button>
           )}
         </div>

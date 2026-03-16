@@ -78,6 +78,8 @@ export interface UseGameUpdatesReturn {
   sendMessage?: (message: any) => void;
   // Request current roster from server
   requestRoster?: () => void;
+  // Force-refresh connection and roster for manual recovery
+  refreshConnection?: () => void;
 }
 
 const useGameUpdates = ({
@@ -102,6 +104,7 @@ const useGameUpdates = ({
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastFetchRef = useRef<number>(0);
   const rosterRefreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastManualRefreshRef = useRef<number>(0);
 
   const fetchGameStatus = useCallback(async () => {
     if (!sessionCode) return;
@@ -243,6 +246,7 @@ const useGameUpdates = ({
     pressBuzzer,
     sendMessage,
     requestRoster,
+    connect,
   } = useGameWebSocket({
     sessionCode,
     clientType,
@@ -262,9 +266,39 @@ const useGameUpdates = ({
     reconnectInterval: 1200,
   });
 
+  const refreshConnection = useCallback(() => {
+    const now = Date.now();
+    if (now - lastManualRefreshRef.current < 3000) {
+      return;
+    }
+    lastManualRefreshRef.current = now;
+
+    if (!enableWebSocket) {
+      fetchGameStatus();
+      return;
+    }
+
+    // Soft refresh when connected: request roster and status only.
+    if (isConnected) {
+      requestRoster?.();
+      fetchGameStatus();
+      return;
+    }
+
+    // If disconnected, perform one explicit connect attempt and fetch status.
+    connect();
+    fetchGameStatus();
+  }, [enableWebSocket, isConnected, requestRoster, connect, fetchGameStatus]);
+
   // Periodically request authoritative roster while connected to self-heal missed events.
   useEffect(() => {
-    if (enableWebSocket && isConnected && requestRoster) {
+    // Limit roster polling to host/web clients to avoid mobile fan-out load.
+    if (
+      enableWebSocket &&
+      isConnected &&
+      requestRoster &&
+      clientType === "web"
+    ) {
       requestRoster();
 
       if (rosterRefreshIntervalRef.current) {
@@ -273,7 +307,7 @@ const useGameUpdates = ({
 
       rosterRefreshIntervalRef.current = setInterval(() => {
         requestRoster();
-      }, 4000);
+      }, 8000);
     } else if (rosterRefreshIntervalRef.current) {
       clearInterval(rosterRefreshIntervalRef.current);
       rosterRefreshIntervalRef.current = null;
@@ -285,7 +319,7 @@ const useGameUpdates = ({
         rosterRefreshIntervalRef.current = null;
       }
     };
-  }, [enableWebSocket, isConnected, requestRoster]);
+  }, [enableWebSocket, isConnected, requestRoster, clientType]);
 
   // Update connected players from game state
   useEffect(() => {
@@ -363,6 +397,7 @@ const useGameUpdates = ({
     pressBuzzer,
     sendMessage: enableWebSocket ? sendMessage : undefined,
     requestRoster: enableWebSocket ? requestRoster : undefined,
+    refreshConnection: enableWebSocket ? refreshConnection : fetchGameStatus,
   };
 };
 
