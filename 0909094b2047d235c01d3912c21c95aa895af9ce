@@ -1,0 +1,12 @@
+src/hooks/useGameUpdates.ts
+  7a2bb84 302,306
+src/pages/Join.tsx
+  7a2bb84 223
+src/pages/SessionWaitingRoom.tsx
+  7a2bb84 75-81,83,85,88-92,94-100,109,174,184
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "base_commit_sha": "0909094b2047d235c01d3912c21c95aa895af9ce",
+  "prompts": {}
+}
