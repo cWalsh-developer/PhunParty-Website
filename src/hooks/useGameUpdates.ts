@@ -2,6 +2,36 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import useGameWebSocket, { GameState, Player } from "@/hooks/useGameWebSocket";
 import { getSessionStatus, GameStatusResponse } from "@/lib/api";
 
+const buildRosterCacheKey = (sessionCode: string) =>
+  `phunparty:roster:${sessionCode}`;
+
+const readRosterCache = (sessionCode: string): Player[] => {
+  if (!sessionCode || typeof window === "undefined") return [];
+
+  try {
+    const raw = window.sessionStorage.getItem(buildRosterCacheKey(sessionCode));
+    if (!raw) return [];
+
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as Player[]) : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeRosterCache = (sessionCode: string, players: Player[]) => {
+  if (!sessionCode || typeof window === "undefined") return;
+
+  try {
+    window.sessionStorage.setItem(
+      buildRosterCacheKey(sessionCode),
+      JSON.stringify(players),
+    );
+  } catch {
+    // Ignore storage write failures.
+  }
+};
+
 export interface GameUpdate {
   type:
     | "player_joined"
@@ -60,15 +90,18 @@ const useGameUpdates = ({
   playerPhoto,
 }: UseGameUpdatesOptions): UseGameUpdatesReturn => {
   const [game_status, setGameStatus] = useState<GameStatusResponse | null>(
-    null
+    null,
   );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<GameUpdate | null>(null);
-  const [connectedPlayers, setConnectedPlayers] = useState<Player[]>([]);
+  const [connectedPlayers, setConnectedPlayers] = useState<Player[]>(() =>
+    readRosterCache(sessionCode),
+  );
 
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastFetchRef = useRef<number>(0);
+  const rosterRefreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchGameStatus = useCallback(async () => {
     if (!sessionCode) return;
@@ -102,13 +135,13 @@ const useGameUpdates = ({
         data: player,
       });
     },
-    [sessionCode]
+    [sessionCode],
   );
 
   const handlePlayerLeft = useCallback(
     (playerId: string) => {
       setConnectedPlayers((prev) =>
-        prev.filter((p) => p.player_id !== playerId)
+        prev.filter((p) => p.player_id !== playerId),
       );
 
       setLastUpdate({
@@ -118,7 +151,7 @@ const useGameUpdates = ({
         data: { playerId },
       });
     },
-    [sessionCode]
+    [sessionCode],
   );
 
   const handleGameStarted = useCallback(() => {
@@ -156,21 +189,21 @@ const useGameUpdates = ({
 
       // Reset answered status for all players
       setConnectedPlayers((prev) =>
-        prev.map((p) => ({ ...p, answered_current: false }))
+        prev.map((p) => ({ ...p, answered_current: false })),
       );
 
       // Refresh game status
       fetchGameStatus();
     },
-    [sessionCode, fetchGameStatus]
+    [sessionCode, fetchGameStatus],
   );
 
   const handlePlayerAnswered = useCallback(
     (playerId: string, playerName: string) => {
       setConnectedPlayers((prev) =>
         prev.map((p) =>
-          p.player_id === playerId ? { ...p, answered_current: true } : p
-        )
+          p.player_id === playerId ? { ...p, answered_current: true } : p,
+        ),
       );
 
       setLastUpdate({
@@ -180,7 +213,7 @@ const useGameUpdates = ({
         data: { playerId, playerName },
       });
     },
-    [sessionCode]
+    [sessionCode],
   );
 
   const handleBuzzerWinner = useCallback(
@@ -192,7 +225,7 @@ const useGameUpdates = ({
         data: { playerId, playerName },
       });
     },
-    [sessionCode]
+    [sessionCode],
   );
 
   const handleError = useCallback((errorMessage: string) => {
@@ -224,9 +257,35 @@ const useGameUpdates = ({
     onPlayerAnswered: handlePlayerAnswered,
     onBuzzerWinner: handleBuzzerWinner,
     onError: handleError,
-    reconnectAttempts: 3,
-    reconnectInterval: 5000,
+    // Keep trying to recover websocket connectivity; mobile networks are noisy.
+    reconnectAttempts: 1000,
+    reconnectInterval: 1200,
   });
+
+  // Periodically request authoritative roster while connected to self-heal missed events.
+  useEffect(() => {
+    if (enableWebSocket && isConnected && requestRoster) {
+      requestRoster();
+
+      if (rosterRefreshIntervalRef.current) {
+        clearInterval(rosterRefreshIntervalRef.current);
+      }
+
+      rosterRefreshIntervalRef.current = setInterval(() => {
+        requestRoster();
+      }, 4000);
+    } else if (rosterRefreshIntervalRef.current) {
+      clearInterval(rosterRefreshIntervalRef.current);
+      rosterRefreshIntervalRef.current = null;
+    }
+
+    return () => {
+      if (rosterRefreshIntervalRef.current) {
+        clearInterval(rosterRefreshIntervalRef.current);
+        rosterRefreshIntervalRef.current = null;
+      }
+    };
+  }, [enableWebSocket, isConnected, requestRoster]);
 
   // Update connected players from game state
   useEffect(() => {
@@ -234,13 +293,17 @@ const useGameUpdates = ({
       // Only update if we have players, or if explicitly setting to empty (game ended)
       if (game_state.connectedPlayers.length > 0 || !game_state.isActive) {
         setConnectedPlayers(game_state.connectedPlayers);
+
+        if (game_state.connectedPlayers.length > 0) {
+          writeRosterCache(sessionCode, game_state.connectedPlayers);
+        }
       } else {
         console.warn(
-          "[useGameUpdates] Skipping empty connectedPlayers update while game is active"
+          "[useGameUpdates] Skipping empty connectedPlayers update while game is active",
         );
       }
     }
-  }, [game_state?.connectedPlayers, game_state?.isActive]);
+  }, [game_state?.connectedPlayers, game_state?.isActive, sessionCode]);
 
   // Fallback polling when WebSocket is not available or not connected
   useEffect(() => {
