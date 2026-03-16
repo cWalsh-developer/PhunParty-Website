@@ -121,8 +121,20 @@ const useWebSocket = (
   const baseReconnectDelayRef = useRef(reconnectInterval);
 
   const connect = useCallback(() => {
-    if (!url || wsRef.current?.readyState === WebSocket.CONNECTING) {
+    if (!url) {
       return;
+    }
+
+    if (
+      wsRef.current?.readyState === WebSocket.CONNECTING ||
+      wsRef.current?.readyState === WebSocket.OPEN
+    ) {
+      return;
+    }
+
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
     }
 
     try {
