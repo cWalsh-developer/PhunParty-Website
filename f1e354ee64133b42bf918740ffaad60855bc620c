@@ -1,0 +1,8 @@
+src/pages/ActiveQuiz.tsx
+  7a2bb84 195
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "base_commit_sha": "f1e354ee64133b42bf918740ffaad60855bc620c",
+  "prompts": {}
+}
