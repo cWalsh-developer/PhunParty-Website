@@ -21,6 +21,7 @@ export default function SessionWaitingRoom() {
     isConnected,
     connectedPlayers,
     startGame: wsStartGame,
+    requestRoster,
   } = useGameUpdates({
     sessionCode: sessionCode || "",
     pollInterval: 3000,
