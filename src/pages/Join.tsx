@@ -129,9 +129,9 @@ export default function Join() {
 
   useEffect(() => {
     // Prefer WebSocket question for real-time updates.
-    // Important: don't gate WS updates behind `hasStarted`.
-    // The WS can deliver a question slightly before REST `isstarted` flips,
-    // which would otherwise hide the question from users.
+    // Keep WS question payloads available, but only display them after the
+    // game has officially started so phones remain on the waiting screen
+    // during the intro audio/countdown flow.
     const wsQ = (game_state as any)?.currentQuestion;
 
     if (wsQ) {
@@ -235,15 +235,15 @@ export default function Join() {
       if (playerId) {
         setMyId(playerId);
 
-        const joinedKey = getJoinedSessionKey(sessionId, playerId);
-        if (localStorage.getItem(joinedKey) === "1") {
-          setNameTrigger(true);
-        }
-
         const rememberedName =
           storedUser?.player_name || storedUser?.name || "";
         if (rememberedName) {
           setName(rememberedName);
+
+          const joinedKey = getJoinedSessionKey(sessionId, playerId);
+          if (localStorage.getItem(joinedKey) === "1") {
+            setNameTrigger(true);
+          }
         }
       }
     }
