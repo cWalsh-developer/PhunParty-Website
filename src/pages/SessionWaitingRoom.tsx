@@ -49,6 +49,11 @@ export default function SessionWaitingRoom() {
 
   const joinUrl = `${window.location.origin}/#/join/${sessionCode}`;
 
+  const handleManualRefresh = () => {
+    refreshConnection?.();
+    showSuccess("Refreshing connection and player roster...");
+  };
+
   const handleStart = async () => {
     if (!sessionCode) return;
 
@@ -184,7 +189,7 @@ export default function SessionWaitingRoom() {
           <h3 className="text-lg font-semibold">Players Joined</h3>
           {refreshConnection && (
             <button
-              onClick={() => refreshConnection()}
+              onClick={handleManualRefresh}
               className="text-xs text-tea-400 hover:text-tea-300 transition-colors"
               title="Refresh WebSocket connection and player list"
             >

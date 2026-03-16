@@ -87,7 +87,7 @@ export interface UseWebSocketReturn {
 
 const useWebSocket = (
   url: string | null,
-  options: UseWebSocketOptions = {}
+  options: UseWebSocketOptions = {},
 ): UseWebSocketReturn => {
   const {
     reconnectAttempts = 5,
@@ -126,6 +126,9 @@ const useWebSocket = (
     }
 
     try {
+      // Manual reconnects should restore automatic reconnect behavior.
+      shouldReconnectRef.current = true;
+      setConnectionState("connecting");
       setIsReconnecting(reconnectCountRef.current > 0);
 
       // Build WebSocket URL with query parameters for backend
@@ -211,7 +214,7 @@ const useWebSocket = (
             // Exponential backoff with cap
             const delay = Math.min(
               baseReconnectDelayRef.current * 2 ** reconnectCountRef.current,
-              10000
+              10000,
             );
 
             reconnectTimeoutRef.current = setTimeout(() => {
@@ -316,7 +319,7 @@ const useWebSocket = (
           JSON.stringify({
             ...message,
             timestamp: message.timestamp || Date.now(),
-          })
+          }),
         );
       } catch (error) {
         console.error("Failed to send WebSocket message:", error);
@@ -337,7 +340,7 @@ const useWebSocket = (
         data: { answer, question_id: questionId },
       });
     },
-    [sendMessage]
+    [sendMessage],
   );
 
   const pressBuzzer = useCallback(() => {

@@ -40,6 +40,22 @@ export default function Join() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [nameTrigger, setNameTrigger] = useState(false);
 
+  const getStoredUser = () => {
+    const raw = localStorage.getItem("auth_user");
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw) as Record<string, any>;
+    } catch {
+      return null;
+    }
+  };
+
+  const getStoredPlayerId = (user: Record<string, any> | null) =>
+    user?.player_id || user?.id || null;
+
+  const getJoinedSessionKey = (code: string, playerId: string) =>
+    `phunparty:joined:${code}:${playerId}`;
+
   // Use real-time game updates
   // Determine when to open a real-time (mobile) WebSocket connection.
   // Previously we always connected as a generic "web" client, so the backend
@@ -68,8 +84,6 @@ export default function Join() {
     playerId: isJoined ? myId || undefined : undefined,
     playerName: isJoined ? name || undefined : undefined,
   });
-
-  const stored = localStorage.getItem(`auth_user`);
 
   // WebSocket game controls for real-time interactions
   const wsGameControls = useWebSocketGameControls({
@@ -121,6 +135,12 @@ export default function Join() {
     const wsQ = (game_state as any)?.currentQuestion;
 
     if (wsQ) {
+      // Keep mobile clients on the waiting screen until game has officially started.
+      if (!hasStarted) {
+        setQuestion(null);
+        return;
+      }
+
       const prompt = wsQ.question || wsQ.prompt || "";
       const id = wsQ.question_id || wsQ.id || prompt;
       const displayOptions: string[] = wsQ.display_options || wsQ.options || [];
@@ -210,23 +230,20 @@ export default function Join() {
   // Load stored player ID and name if available
   useEffect(() => {
     if (sessionId) {
-      if (stored) {
-        try {
-          const playerData = JSON.parse(stored);
-          // Use player_id field (Player type uses player_id, not id)
-          const playerId = playerData.player_id || playerData.id;
-          if (playerId) {
-            setMyId(playerId);
-          } else {
-            console.warn(
-              "[Join] No player_id found in stored data:",
-              playerData,
-            );
-          }
-          // Have the user enter their name each time for better UX
-          setName("");
-        } catch (error) {
-          console.error("Failed to parse stored player data:", error);
+      const storedUser = getStoredUser();
+      const playerId = getStoredPlayerId(storedUser);
+      if (playerId) {
+        setMyId(playerId);
+
+        const joinedKey = getJoinedSessionKey(sessionId, playerId);
+        if (localStorage.getItem(joinedKey) === "1") {
+          setNameTrigger(true);
+        }
+
+        const rememberedName =
+          storedUser?.player_name || storedUser?.name || "";
+        if (rememberedName) {
+          setName(rememberedName);
         }
       }
     }
@@ -243,18 +260,41 @@ export default function Join() {
     setJoinError(null);
 
     try {
-      if (!stored) {
-        throw new Error("Player information not found in localStorage");
-      }
+      const storedUser = getStoredUser();
+      let playerId = getStoredPlayerId(storedUser);
 
-      const player = JSON.parse(stored) as Player;
+      if (!playerId) {
+        const normalizedName = name.trim();
+        const uniqueSuffix = `${Date.now().toString(36)}${Math.random()
+          .toString(36)
+          .slice(2, 8)}`;
+        const guestEmail = `guest_${uniqueSuffix}@phun.party`;
+
+        const newPlayer = await createPlayer({
+          player_name: normalizedName,
+          player_email: guestEmail,
+          hashed_password: `guest-${uniqueSuffix}`,
+        });
+
+        playerId = newPlayer.player_id;
+        localStorage.setItem(
+          "auth_user",
+          JSON.stringify({
+            id: newPlayer.player_id,
+            name: newPlayer.player_name,
+            email: newPlayer.player_email,
+          }),
+        );
+      }
 
       const playerData = {
         session_code: sessionId,
-        player_id: player.player_id,
+        player_id: playerId,
       };
 
       await joinGameSession(playerData);
+      setMyId(playerId);
+      localStorage.setItem(getJoinedSessionKey(sessionId, playerId), "1");
 
       // Enable mobile WebSocket only after backend confirms the player joined.
       setNameTrigger(true);
@@ -265,10 +305,11 @@ export default function Join() {
       // Backend sends {"detail":"Player is already in a game session"}
       if (rawMessage.includes("Player is already in a game session")) {
         try {
-          const player = stored ? (JSON.parse(stored) as Player) : null;
-          if (player) {
+          const player = getStoredUser();
+          const playerId = getStoredPlayerId(player);
+          if (playerId) {
             setPendingRejoin({
-              playerId: player.player_id,
+              playerId,
               targetSession: sessionId,
             });
           }
@@ -293,6 +334,14 @@ export default function Join() {
         session_code: pendingRejoin.targetSession,
         player_id: pendingRejoin.playerId,
       });
+      setMyId(pendingRejoin.playerId);
+      localStorage.setItem(
+        getJoinedSessionKey(
+          pendingRejoin.targetSession,
+          pendingRejoin.playerId,
+        ),
+        "1",
+      );
       setNameTrigger(true);
       showSuccess(`Welcome to the game, ${name.trim() || "Player"}!`);
       setPendingRejoin(null);
