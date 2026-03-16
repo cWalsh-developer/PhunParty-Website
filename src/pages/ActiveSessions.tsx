@@ -2,15 +2,11 @@ import { useEffect, useState, useCallback } from "react";
 import { Link, useLocation, useNavigate, Navigate } from "react-router-dom";
 import Card from "@/components/Card";
 import QR from "@/components/QR";
-import LoadingButton from "@/components/LoadingButton";
 import ConnectionIndicator from "@/components/ConnectionIndicator";
-import { ToastContainer } from "@/components/Toast";
-import { useToast } from "@/hooks/useToast";
 import useGameUpdates from "@/hooks/useGameUpdates";
 import {
     getOwnedUserSessions,
     getSessionStatus,
-    startGame,
     GameStatusResponse,
     GameResponse,
 } from "@/lib/api";
@@ -26,7 +22,6 @@ export default function ActiveSessions() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const focus = params.get("focus") || sessions[0]?.code;
-    const { toasts, removeToast, success, error: toastError } = useToast();
 
     const loadSessions = useCallback(async () => {
         try {
@@ -51,7 +46,6 @@ export default function ActiveSessions() {
     const {
         game_status: realTimeStatus,
         isConnected,
-        isLoading: statusLoading,
     } = useGameUpdates({
         sessionCode: focus || "",
         pollInterval: 3000,
@@ -82,8 +76,6 @@ export default function ActiveSessions() {
     }
 
     return (
-        <>
-            <ToastContainer toasts={toasts} onDismiss={removeToast} />
             <main className="max-w-6xl mx-auto px-4 py-8 grid md:grid-cols-2 gap-6">
                 <section>
                     <Card className="p-6 h-full">
@@ -239,6 +231,5 @@ export default function ActiveSessions() {
                     )}
                 </section>
             </main>
-        </>
     );
 }

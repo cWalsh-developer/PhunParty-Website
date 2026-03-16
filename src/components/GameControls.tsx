@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import LoadingButton from "@/components/LoadingButton";
-import { useToast } from "@/hooks/useToast";
+import { LoadingButton } from "@/components/Loading";
+import { useToast } from "@/contexts/ToastContext";
 
 interface GameControlsProps {
     isPaused?: boolean;
@@ -31,7 +31,7 @@ export default function GameControls({
 }: GameControlsProps) {
     const [showEndDialog, setShowEndDialog] = useState(false);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
-    const { error: showError } = useToast();
+    const { showError } = useToast();
 
     const handleAction = async (
         action: string,
@@ -64,7 +64,7 @@ export default function GameControls({
                     {isPaused ? (
                         <LoadingButton
                             onClick={() => handleAction("resume", onResume)}
-                            loading={actionLoading === "resume"}
+                            isLoading={actionLoading === "resume"}
                             disabled={isLoading}
                             variant="primary"
                             className="px-4 py-2"
@@ -74,7 +74,7 @@ export default function GameControls({
                     ) : (
                         <LoadingButton
                             onClick={() => handleAction("pause", onPause)}
-                            loading={actionLoading === "pause"}
+                            isLoading={actionLoading === "pause"}
                             disabled={isLoading}
                             variant="secondary"
                             className="px-4 py-2"
@@ -90,7 +90,7 @@ export default function GameControls({
                         onClick={() =>
                             handleAction("previous", onPreviousQuestion)
                         }
-                        loading={actionLoading === "previous"}
+                        isLoading={actionLoading === "previous"}
                         disabled={!canGoPrevious || isLoading || isPaused}
                         variant="ghost"
                         className="px-3 py-2"
@@ -106,7 +106,7 @@ export default function GameControls({
 
                     <LoadingButton
                         onClick={() => handleAction("next", onNextQuestion)}
-                        loading={actionLoading === "next"}
+                        isLoading={actionLoading === "next"}
                         disabled={!canGoNext || isLoading || isPaused}
                         variant="primary"
                         className="px-3 py-2"
@@ -161,7 +161,7 @@ export default function GameControls({
                             </button>
                             <LoadingButton
                                 onClick={handleEndGame}
-                                loading={actionLoading === "end game"}
+                                isLoading={actionLoading === "end game"}
                                 variant="primary"
                                 className="px-4 py-2 bg-red-600 hover:bg-red-700"
                             >

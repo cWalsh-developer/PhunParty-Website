@@ -577,24 +577,6 @@ export async function getScores(
   return raw.map(mapScore);
 }
 
-export async function getQuestion(
-  question_id: string
-): Promise<QuestionResponse> {
-  const raw = await apiFetch<BackendQuestion>(
-    `/questions/${encodeURIComponent(question_id)}`
-  );
-  return mapQuestion(raw);
-}
-
-export async function addQuestion(
-  data: CreateQuestionRequest
-): Promise<QuestionsAddedResponseModel> {
-  return apiFetch<QuestionsAddedResponseModel>("/questions/add", {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-}
-
 export async function createPlayer(
   data: CreatePlayerRequest
 ): Promise<PlayerResponse> {
@@ -651,19 +633,6 @@ async function getPlayerWithToken(
   return mapPlayer(raw);
 }
 
-export async function getPlayers(): Promise<PlayerResponse[]> {
-  const raw = await apiFetch<BackendPlayer[]>("/players/");
-  return raw.map(mapPlayer);
-}
-
-export async function deletePlayer(player_id: string): Promise<void> {
-  await apiFetch<void>(
-    `/players/${encodeURIComponent(player_id)}`,
-    { method: "DELETE" },
-    false
-  );
-}
-
 export async function updatePlayer(
   player_id: string,
   data: PlayerUpdateRequest
@@ -712,16 +681,6 @@ export async function getCurrentQuestion(
   return mapQuestion(raw);
 }
 
-export async function createGame(
-  data: CreateGameRequest
-): Promise<GameResponse> {
-  const raw = await apiFetch<BackendGame>("/game/", {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-  return mapGame(raw);
-}
-
 export async function createSession(
   data: CreateSessionRequest
 ): Promise<GameResponse> {
@@ -744,13 +703,6 @@ export async function createSession(
   addUserSession(session.code);
 
   return session;
-}
-
-export async function getGameSession(game_code: string): Promise<GameResponse> {
-  const raw = await apiFetch<BackendGame>(
-    `/game/${encodeURIComponent(game_code)}`
-  );
-  return mapGame(raw);
 }
 
 // *! Wait for Endpoint ! \\

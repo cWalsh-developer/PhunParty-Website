@@ -97,17 +97,4 @@ export const GameListSkeleton = () => (
     </div>
 );
 
-export const CardSkeleton = ({ lines = 3 }: { lines?: number }) => (
-    <div className="space-y-2">
-        {Array.from({ length: lines }, (_, i) => (
-            <Skeleton
-                key={i}
-                height="1em"
-                width={`${Math.random() * 30 + 60}%`}
-                variant="text"
-            />
-        ))}
-    </div>
-);
-
 export default Skeleton;

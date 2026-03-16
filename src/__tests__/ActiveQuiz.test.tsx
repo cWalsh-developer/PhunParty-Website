@@ -46,10 +46,10 @@ vi.mock("@/hooks/useWebSocketGameControls", () => ({
     }),
 }));
 
-vi.mock("@/hooks/useToast", () => ({
+vi.mock("@/contexts/ToastContext", () => ({
     useToast: () => ({
-        success: vi.fn(),
-        error: vi.fn(),
+        showSuccess: vi.fn(),
+        showError: vi.fn(),
     }),
 }));
 

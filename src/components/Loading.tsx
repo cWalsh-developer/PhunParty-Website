@@ -39,25 +39,6 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
     );
 };
 
-interface LoadingProps {
-    message?: string;
-    className?: string;
-}
-
-export default function Loading({
-    message = "Loading...",
-    className = "",
-}: LoadingProps) {
-    return (
-        <div className={`flex items-center justify-center p-8 ${className}`}>
-            <div className="flex flex-col items-center space-y-3">
-                <LoadingSpinner size="lg" />
-                <div className="text-stone-400 text-sm">{message}</div>
-            </div>
-        </div>
-    );
-}
-
 interface LoadingStateProps {
     message?: string;
     showSpinner?: boolean;
@@ -81,14 +62,14 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
 
 interface LoadingButtonProps
     extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-    isLoading: boolean;
+    isLoading?: boolean;
     loadingText?: string;
     children: React.ReactNode;
-    variant?: "primary" | "secondary";
+    variant?: "primary" | "secondary" | "ghost";
 }
 
 export const LoadingButton: React.FC<LoadingButtonProps> = ({
-    isLoading,
+    isLoading = false,
     loadingText,
     children,
     variant = "primary",
@@ -102,6 +83,7 @@ export const LoadingButton: React.FC<LoadingButtonProps> = ({
     const variantClasses = {
         primary: "bg-tea-500 text-ink-900 hover:bg-tea-400",
         secondary: "bg-ink-700 text-stone-300 hover:bg-ink-600",
+        ghost: "bg-transparent text-stone-300 hover:bg-ink-700",
     };
 
     return (
