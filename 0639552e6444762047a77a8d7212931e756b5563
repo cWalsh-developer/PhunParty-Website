@@ -1,0 +1,10 @@
+src/pages/Join.tsx
+  7a2bb84 233-236,239
+src/hooks/useWebSocket.ts
+  7a2bb84 217
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "base_commit_sha": "0639552e6444762047a77a8d7212931e756b5563",
+  "prompts": {}
+}
