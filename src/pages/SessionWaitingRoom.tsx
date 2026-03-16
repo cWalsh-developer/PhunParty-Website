@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import Card from "@/components/Card";
 import QR from "@/components/QR";
 import { LoadingSpinner } from "@/components/Loading";
-import { getSessionStatus } from "@/lib/api";
 import { LoadingState, LoadingButton } from "@/components/Loading";
 import ConnectionIndicator from "@/components/ConnectionIndicator";
 import useGameUpdates from "@/hooks/useGameUpdates";
@@ -22,31 +21,11 @@ export default function SessionWaitingRoom() {
     isConnected,
     connectedPlayers,
     startGame: wsStartGame,
-    requestRoster,
   } = useGameUpdates({
     sessionCode: sessionCode || "",
     pollInterval: 3000,
     enableWebSocket: true,
   });
-
-  // Request roster when WebSocket connects
-  useEffect(() => {
-    if (isConnected && requestRoster) {
-      // Initial sync + periodic refresh to heal missed join events.
-      const initialTimer = setTimeout(() => {
-        requestRoster();
-      }, 100);
-
-      const interval = setInterval(() => {
-        requestRoster();
-      }, 2500);
-
-      return () => {
-        clearTimeout(initialTimer);
-        clearInterval(interval);
-      };
-    }
-  }, [isConnected, requestRoster]);
 
   // Mark roster as loaded when we receive players
   useEffect(() => {
@@ -164,7 +143,6 @@ export default function SessionWaitingRoom() {
                 </div>
                 <LoadingButton
                   onClick={() => navigate(`/play/${sessionCode}?intro=1`)}
-                  isLoading={false}
                   className="px-6 py-3"
                 >
                   Enter Game

@@ -21,7 +21,7 @@ import ConnectionIndicator from "@/components/ConnectionIndicator";
 import { LoadingState } from "@/components/Loading";
 import GameControls from "@/components/GameControls";
 import GameStateIndicator from "@/components/GameStateIndicator";
-import { useToast } from "@/hooks/useToast";
+import { useToast } from "@/contexts/ToastContext";
 import { useTouchGestures } from "@/hooks/useTouchGestures";
 import { useWebSocketGameControls } from "@/hooks/useWebSocketGameControls";
 import WebSocketStatus from "@/components/WebSocketStatus";
@@ -37,7 +37,7 @@ export default function ActiveQuiz() {
   const [game_state, setGameState] = useState<
     "waiting" | "active" | "paused" | "ended"
   >("waiting");
-  const { success, error: showError } = useToast();
+  const { showSuccess, showError } = useToast();
   const containerRef = useRef<HTMLDivElement>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [introMode, setIntroMode] = useState(false); // whether we're in tutorial phase
@@ -85,7 +85,7 @@ export default function ActiveQuiz() {
       ) {
         try {
           await nextQuestion({ session_code: sessionId });
-          success("Moved to next question");
+          showSuccess("Moved to next question");
         } catch (err) {
           showError("Failed to move to next question");
         }
@@ -100,7 +100,7 @@ export default function ActiveQuiz() {
       ) {
         try {
           await previousQuestion({ session_code: sessionId });
-          success("Moved to previous question");
+          showSuccess("Moved to previous question");
         } catch (err) {
           showError("Failed to move to previous question");
         }
@@ -110,7 +110,7 @@ export default function ActiveQuiz() {
       setIsRefreshing(true);
       try {
         await refetch();
-        success("Game status refreshed");
+        showSuccess("Game status refreshed");
       } finally {
         setIsRefreshing(false);
       }
@@ -150,7 +150,7 @@ export default function ActiveQuiz() {
       audio.play().catch((err) => {
         console.warn(
           "Intro audio failed to autoplay, waiting for user interaction.",
-          err
+          err,
         );
       });
       audio.addEventListener("ended", () => {
@@ -192,7 +192,7 @@ export default function ActiveQuiz() {
 
             if (finalPlayerCount === 0) {
               showError(
-                "No players detected. Please ensure players have joined before starting."
+                "No players detected. Please ensure players have joined before starting.",
               );
               setIntroMode(false);
               setCountdown(null);
@@ -230,7 +230,7 @@ export default function ActiveQuiz() {
             // Give a moment for data to propagate through all state updates
             await new Promise((resolve) => setTimeout(resolve, 200));
 
-            success(`Game started with ${finalPlayerCount} player(s)`);
+            showSuccess(`Game started with ${finalPlayerCount} player(s)`);
           }
         } catch (e) {
           console.warn("Failed to start game after intro", e);
@@ -244,12 +244,12 @@ export default function ActiveQuiz() {
     countdownRef.current && clearTimeout(countdownRef.current);
     countdownRef.current = setTimeout(
       () => setCountdown((c) => (c ? c - 1 : 0)),
-      1000
+      1000,
     );
     return () => {
       if (countdownRef.current) clearTimeout(countdownRef.current);
     };
-  }, [countdown, sessionId, connectedPlayers, refetch, showError, success]);
+  }, [countdown, sessionId, connectedPlayers, refetch, showError, showSuccess]);
 
   // Process game status updates
   useEffect(() => {
@@ -334,13 +334,13 @@ export default function ActiveQuiz() {
                 typeof value === "string"
                   ? value
                   : value && typeof value === "object"
-                  ? value.text ??
-                    value.label ??
-                    value.option_text ??
-                    value.value ??
-                    ""
-                  : String(value ?? ""),
-            })
+                    ? (value.text ??
+                      value.label ??
+                      value.option_text ??
+                      value.value ??
+                      "")
+                    : String(value ?? ""),
+            }),
           );
         }
 
@@ -360,7 +360,7 @@ export default function ActiveQuiz() {
 
       const answerText =
         typeof correctIndex === "number" && Array.isArray(displayOptions)
-          ? displayOptions[correctIndex] ?? ""
+          ? (displayOptions[correctIndex] ?? "")
           : wsQ.answer || "";
 
       // Determine type based on ui_mode if available, otherwise check if options exist
@@ -475,7 +475,7 @@ export default function ActiveQuiz() {
     if (!sessionId) return;
     try {
       await pauseGame({ session_code: sessionId });
-      success("Game paused successfully");
+      showSuccess("Game paused successfully");
       await refetch();
     } catch (error) {
       showError("Failed to pause game");
@@ -486,7 +486,7 @@ export default function ActiveQuiz() {
     if (!sessionId) return;
     try {
       await resumeGame({ session_code: sessionId });
-      success("Game resumed successfully");
+      showSuccess("Game resumed successfully");
       await refetch();
     } catch (error) {
       showError("Failed to resume game");
@@ -498,7 +498,7 @@ export default function ActiveQuiz() {
     try {
       // Try WebSocket first if connected
       wsGameControls.nextQuestion();
-      success("Moving to next question via WebSocket...");
+      showSuccess("Moving to next question via WebSocket...");
 
       // Also trigger a refetch to ensure we get the updated question
       // This is a fallback in case the WebSocket doesn't broadcast the new question
@@ -517,7 +517,7 @@ export default function ActiveQuiz() {
         session_code: sessionId,
       });
       if (response.success) {
-        success("Moved to previous question");
+        showSuccess("Moved to previous question");
         await refetch();
       }
     } catch (error) {
@@ -531,12 +531,12 @@ export default function ActiveQuiz() {
       // Try WebSocket first if connected, fallback to HTTP API
       // if (isConnected && wsGameControls) {
       //     wsGameControls.endGame();
-      //     success("Ending game via WebSocket...");
+      //     showSuccess("Ending game via WebSocket...");
       // } else {
       const response = await endGame({ session_code: sessionId });
       if (response.success) {
         setGameState("ended");
-        success("Game ended successfully");
+        showSuccess("Game ended successfully");
         await refetch();
         navigate(`/stats/${sessionId}/`);
       }
