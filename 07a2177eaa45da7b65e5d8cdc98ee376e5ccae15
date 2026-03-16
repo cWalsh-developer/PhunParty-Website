@@ -1,0 +1,8 @@
+src/pages/ActiveQuiz.tsx
+  7a2bb84 233,252
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "base_commit_sha": "07a2177eaa45da7b65e5d8cdc98ee376e5ccae15",
+  "prompts": {}
+}
