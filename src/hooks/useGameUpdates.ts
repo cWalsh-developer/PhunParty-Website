@@ -105,6 +105,7 @@ const useGameUpdates = ({
   const lastFetchRef = useRef<number>(0);
   const rosterRefreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastManualRefreshRef = useRef<number>(0);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchGameStatus = useCallback(async () => {
     if (!sessionCode) return;
@@ -247,6 +248,7 @@ const useGameUpdates = ({
     sendMessage,
     requestRoster,
     connect,
+    disconnect,
   } = useGameWebSocket({
     sessionCode,
     clientType,
@@ -268,27 +270,46 @@ const useGameUpdates = ({
 
   const refreshConnection = useCallback(() => {
     const now = Date.now();
-    if (now - lastManualRefreshRef.current < 3000) {
+    if (now - lastManualRefreshRef.current < 5000) {
       return;
     }
     lastManualRefreshRef.current = now;
+
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
 
     if (!enableWebSocket) {
       fetchGameStatus();
       return;
     }
 
-    // Soft refresh when connected: request roster and status only.
+    // Always refresh status as a fallback source of truth.
+    fetchGameStatus();
+
+    // If the socket says it is connected but is actually stale, perform a
+    // single manual restart so the host can recover without a full page refresh.
     if (isConnected) {
       requestRoster?.();
-      fetchGameStatus();
+      disconnect();
+      reconnectTimeoutRef.current = setTimeout(() => {
+        connect();
+        reconnectTimeoutRef.current = null;
+      }, 250);
       return;
     }
 
     // If disconnected, perform one explicit connect attempt and fetch status.
     connect();
-    fetchGameStatus();
-  }, [enableWebSocket, isConnected, requestRoster, connect, fetchGameStatus]);
+  }, [
+    enableWebSocket,
+    isConnected,
+    requestRoster,
+    connect,
+    disconnect,
+    fetchGameStatus,
+  ]);
 
   // Periodically request authoritative roster while connected to self-heal missed events.
   useEffect(() => {
@@ -377,6 +398,9 @@ const useGameUpdates = ({
     return () => {
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
       }
     };
   }, []);
