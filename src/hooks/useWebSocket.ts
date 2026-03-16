@@ -125,10 +125,14 @@ const useWebSocket = (
       return;
     }
 
+    // Prevent connecting if socket is still closing (race condition)
     if (
       wsRef.current?.readyState === WebSocket.CONNECTING ||
-      wsRef.current?.readyState === WebSocket.OPEN
+      wsRef.current?.readyState === WebSocket.OPEN ||
+      wsRef.current?.readyState === WebSocket.CLOSING
     ) {
+      // Optionally log for diagnostics
+      // console.warn("WebSocket is still closing; connect() aborted.");
       return;
     }
 
