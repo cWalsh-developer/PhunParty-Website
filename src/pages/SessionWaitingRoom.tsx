@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Card from "@/components/Card";
 import QR from "@/components/QR";
 import { LoadingSpinner } from "@/components/Loading";
@@ -15,6 +15,7 @@ export default function SessionWaitingRoom() {
   const { showError, showSuccess } = useToast();
   const [isStarting, setIsStarting] = useState(false);
   const [isLoadingRoster, setIsLoadingRoster] = useState(true);
+  const manualRefreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const {
     game_status,
@@ -35,6 +36,14 @@ export default function SessionWaitingRoom() {
     }
   }, [connectedPlayers.length, isConnected, game_status]);
 
+  useEffect(() => {
+    return () => {
+      if (manualRefreshTimeoutRef.current) {
+        clearTimeout(manualRefreshTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // We intentionally do NOT auto-redirect anymore so the host can wait even if backend marks session active.
 
   if (!game_status) {
@@ -51,7 +60,28 @@ export default function SessionWaitingRoom() {
 
   const handleManualRefresh = () => {
     setIsLoadingRoster(true);
-    refreshConnection?.();
+
+    if (manualRefreshTimeoutRef.current) {
+      clearTimeout(manualRefreshTimeoutRef.current);
+    }
+
+    manualRefreshTimeoutRef.current = setTimeout(() => {
+      setIsLoadingRoster(false);
+      manualRefreshTimeoutRef.current = null;
+    }, 7000);
+
+    Promise.resolve(refreshConnection?.())
+      .catch(() => {
+        setIsLoadingRoster(false);
+      })
+      .finally(() => {
+        if (manualRefreshTimeoutRef.current) {
+          clearTimeout(manualRefreshTimeoutRef.current);
+          manualRefreshTimeoutRef.current = null;
+        }
+        setIsLoadingRoster(false);
+      });
+
     showSuccess("Refreshing connection and player roster...");
   };
 
