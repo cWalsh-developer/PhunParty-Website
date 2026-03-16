@@ -142,7 +142,7 @@ export default function Join() {
       const correctIndex: number | undefined = wsQ.correct_index;
       const answerText =
         typeof correctIndex === "number" && Array.isArray(displayOptions)
-          ? displayOptions[correctIndex] ?? ""
+          ? (displayOptions[correctIndex] ?? "")
           : wsQ.answer || "";
 
       // Determine type based on ui_mode if available, otherwise check if options exist
@@ -220,7 +220,7 @@ export default function Join() {
           } else {
             console.warn(
               "[Join] No player_id found in stored data:",
-              playerData
+              playerData,
             );
           }
           // Have the user enter their name each time for better UX
@@ -239,8 +239,6 @@ export default function Join() {
       return;
     }
 
-    setNameTrigger(true);
-
     setJoinLoading(true);
     setJoinError(null);
 
@@ -257,6 +255,9 @@ export default function Join() {
       };
 
       await joinGameSession(playerData);
+
+      // Enable mobile WebSocket only after backend confirms the player joined.
+      setNameTrigger(true);
 
       showSuccess(`Welcome to the game, ${name.trim()}!`);
     } catch (err: any) {
@@ -292,6 +293,7 @@ export default function Join() {
         session_code: pendingRejoin.targetSession,
         player_id: pendingRejoin.playerId,
       });
+      setNameTrigger(true);
       showSuccess(`Welcome to the game, ${name.trim() || "Player"}!`);
       setPendingRejoin(null);
     } catch (err: any) {
@@ -471,8 +473,8 @@ export default function Join() {
                       (game_status.current_question_index || 0) + 1
                     }/${game_status.total_questions}`
                   : !hasStarted
-                  ? "Waiting for host to start the game..."
-                  : "Waiting for next question..."}
+                    ? "Waiting for host to start the game..."
+                    : "Waiting for next question..."}
               </div>
 
               {question ? (
@@ -489,7 +491,7 @@ export default function Join() {
                       onSelect={(optionId) => {
                         // Find the option text by ID
                         const selectedOption = question.options?.find(
-                          (opt) => opt.id === optionId
+                          (opt) => opt.id === optionId,
                         );
                         if (selectedOption) {
                           submit(selectedOption.text);
