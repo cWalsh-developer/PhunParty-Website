@@ -50,6 +50,7 @@ export default function SessionWaitingRoom() {
   const joinUrl = `${window.location.origin}/#/join/${sessionCode}`;
 
   const handleManualRefresh = () => {
+    setIsLoadingRoster(true);
     refreshConnection?.();
     showSuccess("Refreshing connection and player roster...");
   };
